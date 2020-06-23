@@ -1054,7 +1054,7 @@ class ReactExoplayerView extends FrameLayout implements
     public void onAdError(AdErrorEvent adErrorEvent) {
         Log.e("IMA", "Ad Error: " + adErrorEvent.getError().getMessage());
         eventEmitter.adError();
-        startPlayback();
+        // startPlayback();
     }
 
     @Override
