@@ -7,7 +7,7 @@
 #include <MediaAccessibility/MediaAccessibility.h>
 #include <AVFoundation/AVFoundation.h>
 
-@interface RCTVideo () <IMAAdsLoaderDelegate, IMAAdsManagerDelegate>
+@interface RCTVideo () <IMAAdsLoaderDelegate, IMAAdsManagerDelegate, IMAWebOpenerDelegate>
 
 @end
 
@@ -129,17 +129,26 @@ static int const RCTVideoUnset = -1;
 }
 
 - (void)requestAds:(NSString *) adTagUrl {
-    _adsLoader = [[IMAAdsLoader alloc] initWithSettings:nil];
-    _adsLoader.delegate = self;
-    // Create an ad display container for ad rendering.
-    IMAAdDisplayContainer *adDisplayContainer =
-    [[IMAAdDisplayContainer alloc] initWithAdContainer:self companionSlots:nil];
-    // Create an ad request with our ad tag, display container, and optional user context.
-    IMAAdsRequest *request = [[IMAAdsRequest alloc] initWithAdTagUrl:adTagUrl
-                                                  adDisplayContainer:adDisplayContainer
-                                                     contentPlayhead:_contentPlayhead
-                                                         userContext:nil];
-    [_adsLoader requestAdsWithRequest:request];
+    NSLog(@"TEST: requestAds");
+//    if (!_playerViewController) {
+//        [self usePlayerViewController];
+//    }
+    if (_playerLayer) {
+        _adsLoader = [[IMAAdsLoader alloc] initWithSettings:nil];
+        _adsLoader.delegate = self;
+        // Create an ad display container for ad rendering.
+        NSLog(@"TEST: IMAAdDisplayContainer");
+        IMAAdDisplayContainer *adDisplayContainer =
+        [[IMAAdDisplayContainer alloc] initWithAdContainer:self
+                                            viewController:self.reactViewController                        companionSlots:nil];
+        // Create an ad request with our ad tag, display container, and optional user context.
+        IMAAdsRequest *request = [[IMAAdsRequest alloc] initWithAdTagUrl:adTagUrl
+                                                      adDisplayContainer:adDisplayContainer
+                                                         contentPlayhead:_contentPlayhead
+                                                             userContext:nil];
+        [_adsLoader requestAdsWithRequest:request];
+    }
+    
 }
 
 - (void)adsLoader:(IMAAdsLoader *)loader adsLoadedWithData:(IMAAdsLoadedData *)adsLoadedData {
@@ -150,7 +159,8 @@ static int const RCTVideoUnset = -1;
     
     // Create ads rendering settings and tell the SDK to use the in-app browser.
     IMAAdsRenderingSettings *adsRenderingSettings = [[IMAAdsRenderingSettings alloc] init];
-    adsRenderingSettings.webOpenerPresentingController = self;
+    adsRenderingSettings.webOpenerDelegate = self;
+    adsRenderingSettings.webOpenerPresentingController = self.reactViewController;
     
     // Initialize the ads manager.
     [_adsManager initializeWithAdsRenderingSettings:adsRenderingSettings];
@@ -1187,8 +1197,10 @@ static int const RCTVideoUnset = -1;
     
     // Find the nearest view controller
     UIViewController *viewController = [self firstAvailableUIViewController];
+      NSLog(@"TEST: viewController first set");
     if( !viewController )
     {
+        NSLog(@"TEST: viewController not empty");
       UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
       viewController = keyWindow.rootViewController;
       if( viewController.childViewControllers.count > 0 )
@@ -1198,6 +1210,7 @@ static int const RCTVideoUnset = -1;
     }
     if( viewController )
     {
+        NSLog(@"TEST: _presentingViewController set");
       _presentingViewController = viewController;
       if(self.onVideoFullscreenPlayerWillPresent) {
         self.onVideoFullscreenPlayerWillPresent(@{@"target": self.reactTag});
@@ -1398,6 +1411,32 @@ static int const RCTVideoUnset = -1;
   [[NSNotificationCenter defaultCenter] removeObserver:self];
   
   [super removeFromSuperview];
+}
+
+- (void)webOpenerWillOpenExternalBrowser:(NSObject *)webOpener {
+  NSLog(@"TEST: External browser will open.");
+}
+
+- (void)webOpenerWillOpenInAppBrowser:(NSObject *)webOpener {
+  NSLog(@"TEST: In-app browser will open");
+    if (_adsManager) {
+        [_adsManager pause];
+    }
+}
+
+- (void)webOpenerDidOpenInAppBrowser:(NSObject *)webOpener {
+  NSLog(@"TEST: In-app browser did open");
+}
+
+- (void)webOpenerWillCloseInAppBrowser:(NSObject *)webOpener {
+  NSLog(@"TEST: In-app browser will close");
+}
+
+- (void)webOpenerDidCloseInAppBrowser:(NSObject *)webOpener {
+  NSLog(@"TEST: In-app browser did close");
+    if (_adsManager) {
+        [_adsManager resume];
+    }
 }
 
 @end
